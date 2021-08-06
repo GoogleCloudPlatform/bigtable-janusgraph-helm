@@ -46,7 +46,7 @@ properties:
   ## To use Cloud Bigtable, uncomment the following three lines and replace values
   # storage.hbase.ext.google.bigtable.instance.id: <your-cbt-instance> # replace with your Cloud Bigtable Instance ID
   # storage.hbase.ext.google.bigtable.project.id: <your-cbt-project> # replace with your Cloud Bigtable Project ID
-  # storage.hbase.ext.hbase.client.connection.impl: com.google.cloud.bigtable.hbase1_x.BigtableConnection # required for using Cloud Bigtable
+  # storage.hbase.ext.hbase.client.connection.impl: com.google.cloud.bigtable.hbase2_x.BigtableConnection # required for using Cloud Bigtable
 
 
   ## Indexing/Search backend configuration (see http://docs.janusgraph.org/latest/index-backends.html)

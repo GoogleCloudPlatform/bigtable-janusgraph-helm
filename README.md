@@ -7,7 +7,7 @@
 This chart bootstraps a JanusGraph deployment on a [Kubernetes](http://kubernetes.io) cluster using the [Helm](https://helm.sh) package manager.
 
 ## Prerequisites Details
-* Kubernetes 1.17
+* Kubernetes 1.20
 
 
 ## Installing the Chart

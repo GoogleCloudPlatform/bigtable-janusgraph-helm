@@ -24,8 +24,8 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
-            - name: gremlinserver.graph
-              value: /opt/janusgraph/conf/gremlin-server/janusgraph.properties
+            - name: JANUS_PROPS_TEMPLATE
+              value: {{ .Values.janusPropsTemplate }}
           {{- if .Values.extraEnvs }}
               {{- with .Values.extraEnvs }}
                 {{- toYaml . | trim | nindent 12 -}}
@@ -40,20 +40,24 @@ spec:
             - name: local-db
               mountPath: {{ .Values.persistence.path }}
           livenessProbe:
-            exec:
-              command:
-                - sh
-                - -c
-                - curl
-                  --request GET
-                  --silent
-                  --output /dev/null
-                  --fail
-                  http://127.0.0.1:{{ .Values.service.port }}/?gremlin=100-1
+            httpGet:
+              path: /?gremlin=100-1
+              port: {{ .Values.service.port }}
             initialDelaySeconds: 90
             periodSeconds: 10
+          startupProbe:
+            httpGet:
+              path: /?gremlin=100-1
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: 60
+            failureThreshold: 3
+            periodSeconds: 5
           resources:
 {{ toYaml .Values.resources | indent 12 }}
+      initContainers:
+      - name: init-elasticsearch
+        image: busybox
+        command: ['sh', '-c', 'until telnet {{ (index .Values.properties "index.search.hostname") }} 9200 ; do echo waiting for  {{ (index .Values.properties "index.search.hostname") }} ; sleep 2; done;']
       volumes:
         - name: {{ .Values.configMapOverrideName | default ( printf "%s-config" .Release.Name ) }}
           configMap:
@@ -69,3 +73,4 @@ spec:
       nodeSelector:
       {{- toYaml . | nindent 8 }}
       {{- end }}
+

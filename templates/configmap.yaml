@@ -4,7 +4,7 @@ kind: ConfigMap
 metadata:
   name: {{ .Release.Name }}-config
 data:
-  janusgraph.properties: |-
+  janusgraph-{{ .Values.janusPropsTemplate }}-server.properties: |+
     gremlin.graph=org.janusgraph.core.JanusGraphFactory
 
     {{- $eshostname := (index .Values.properties "index.search.hostname") | default (printf "%s-elasticsearch-client" .Release.Name | trunc 63 | trimSuffix "-")}}
@@ -17,14 +17,14 @@ data:
     {{- if eq (index .Values.properties "index.search.backend") "elasticsearch" "es"}}
     index.search.hostname={{ $eshostname }}
     {{- end }}
-  gremlin-server.yaml: |
+
+  gremlin-server.yaml: |+
     host: 0.0.0.0
     port: 8182
     scriptEvaluationTimeout: 30000
     channelizer: org.apache.tinkerpop.gremlin.server.channel.WsAndHttpChannelizer
-    graphs: {
-      graph: conf/gremlin-server/janusgraph.properties
-    }
+    graphs: 
+      graph: /etc/opt/janusgraph/janusgraph.properties
     scriptEngines: {
       gremlin-groovy: {
         plugins: { org.janusgraph.graphdb.tinkerpop.plugin.JanusGraphGremlinPlugin: {},
@@ -63,13 +63,13 @@ data:
     writeBufferHighWaterMark: 65536
 
 
-  log4j-server.properties: |-
+  log4j-server.properties: |+
 
     log4j.appender.console=org.apache.log4j.ConsoleAppender
-    log4j.appender.console.Threshold=INFO
+    log4j.appender.console.Threshold={{ default "INFO" .Values.debugLevel }}
     log4j.appender.console.layout=org.apache.log4j.PatternLayout
     log4j.appender.console.layout.ConversionPattern=%-4r [%t] %-5p %c %x - %m%n
 
-    log4j.rootLogger=INFO, console
+    log4j.rootLogger={{ default "INFO" .Values.debugLevel }}, console
     
     {{- end -}}
