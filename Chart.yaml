@@ -1,10 +1,10 @@
-apiVersion: v2
+apiVersion: v3
 appVersion: 0.5.3
 deprecated: false
 description: Janusgraph - Open source, scalable graph database, backed by Cloud Bigtable and Elasticsearch.
 home: http://janusgraph.org
 icon: https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph.png
-name: janusgraph-gremlin-bigtable
+name: janusgraph-bigtable
 sources:
   - https://github.com/JanusGraph/janusgraph
 dependencies:
