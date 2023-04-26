@@ -34,6 +34,10 @@ spec:
         app: {{ template "janusgraph.name" . }}
         release: {{ .Release.Name }}
     spec:
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -51,22 +55,9 @@ spec:
               protocol: TCP
           volumeMounts:
             - name: {{ .Values.configMapOverrideName | default ( printf "%s-config" .Release.Name ) }}
-              mountPath: /opt/janusgraph/conf/gremlin-server
+              mountPath: /opt/janusgraph/conf
             - name: local-db
               mountPath: {{ .Values.persistence.path }}
-          livenessProbe:
-            httpGet:
-              path: /?gremlin=100-1
-              port: {{ .Values.service.port }}
-            initialDelaySeconds: 90
-            periodSeconds: 10
-          startupProbe:
-            httpGet:
-              path: /?gremlin=100-1
-              port: {{ .Values.service.port }}
-            initialDelaySeconds: 60
-            failureThreshold: 3
-            periodSeconds: 5
           resources:
 {{ toYaml .Values.resources | indent 12 }}
       initContainers:
