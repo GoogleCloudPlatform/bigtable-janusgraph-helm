@@ -33,11 +33,12 @@ data:
     index.search.hostname={{ $eshostname }}
     {{- end }}
 
-  gremlin-server.yaml: |+
+  janusgraph-server.yaml: |+
     host: 0.0.0.0
     port: 8182
-    scriptEvaluationTimeout: 30000
-    channelizer: org.apache.tinkerpop.gremlin.server.channel.WsAndHttpChannelizer
+    evaluationTimeout: 30000
+    channelizer: org.apache.tinkerpop.gremlin.server.channel.WebSocketChannelizer
+    graphManager: org.janusgraph.graphdb.management.JanusGraphManager
     graphs: 
       graph: /etc/opt/janusgraph/janusgraph.properties
     scriptEngines: {
@@ -48,16 +49,18 @@ data:
                    org.apache.tinkerpop.gremlin.jsr223.ImportGremlinPlugin: {classImports: [java.lang.Math], methodImports: [java.lang.Math#*]},
                    org.apache.tinkerpop.gremlin.jsr223.ScriptFileGremlinPlugin: {files: [scripts/empty-sample.groovy]}}}}
     serializers:
-      - { className: org.apache.tinkerpop.gremlin.driver.ser.GryoMessageSerializerV3d0, config: { ioRegistries: [org.janusgraph.graphdb.tinkerpop.JanusGraphIoRegistry] }}
-      - { className: org.apache.tinkerpop.gremlin.driver.ser.GryoMessageSerializerV3d0, config: { serializeResultToString: true }}
-      - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV3d0, config: { ioRegistries: [org.janusgraph.graphdb.tinkerpop.JanusGraphIoRegistry] }}
-      # Older serialization versions for backwards compatibility:
-      - { className: org.apache.tinkerpop.gremlin.driver.ser.GryoMessageSerializerV1d0, config: { ioRegistries: [org.janusgraph.graphdb.tinkerpop.JanusGraphIoRegistry] }}
-      - { className: org.apache.tinkerpop.gremlin.driver.ser.GryoLiteMessageSerializerV1d0, config: {ioRegistries: [org.janusgraph.graphdb.tinkerpop.JanusGraphIoRegistry] }}
-      - { className: org.apache.tinkerpop.gremlin.driver.ser.GryoMessageSerializerV1d0, config: { serializeResultToString: true }}
-      - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerGremlinV2d0, config: { ioRegistries: [org.janusgraph.graphdb.tinkerpop.JanusGraphIoRegistry] }}
-      - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerGremlinV1d0, config: { ioRegistries: [org.janusgraph.graphdb.tinkerpop.JanusGraphIoRegistryV1d0] }}
-      - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV1d0, config: { ioRegistries: [org.janusgraph.graphdb.tinkerpop.JanusGraphIoRegistryV1d0] }}
+          - { className: org.apache.tinkerpop.gremlin.driver.ser.GryoMessageSerializerV3d0, config: { ioRegistries: [org.janusgraph.graphdb.tinkerpop.JanusGraphIoRegistry] }}
+          - { className: org.apache.tinkerpop.gremlin.driver.ser.GryoMessageSerializerV3d0, config: { serializeResultToString: true }}
+          - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV3d0, config: { ioRegistries: [org.janusgraph.graphdb.tinkerpop.JanusGraphIoRegistry] }}
+          # Older serialization versions for backwards compatibility:
+          - { className: org.apache.tinkerpop.gremlin.driver.ser.GryoMessageSerializerV1d0, config: { ioRegistries: [org.janusgraph.graphdb.tinkerpop.JanusGraphIoRegistry] }}
+          - { className: org.apache.tinkerpop.gremlin.driver.ser.GryoLiteMessageSerializerV1d0, config: {ioRegistries: [org.janusgraph.graphdb.tinkerpop.JanusGraphIoRegistry] }}
+          - { className: org.apache.tinkerpop.gremlin.driver.ser.GryoMessageSerializerV1d0, config: { serializeResultToString: true }}
+          - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerGremlinV2d0, config: { ioRegistries: [org.janusgraph.graphdb.tinkerpop.JanusGraphIoRegistry] }}
+          - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerGremlinV1d0, config: { ioRegistries: [org.janusgraph.graphdb.tinkerpop.JanusGraphIoRegistryV1d0] }}
+          - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV1d0, config: { ioRegistries: [org.janusgraph.graphdb.tinkerpop.JanusGraphIoRegistryV1d0] }}
+        
+
     processors:
       - { className: org.apache.tinkerpop.gremlin.server.op.session.SessionOpProcessor, config: { sessionTimeout: 28800000 }}
       - { className: org.apache.tinkerpop.gremlin.server.op.traversal.TraversalOpProcessor, config: { cacheExpirationTime: 600000, cacheMaxSize: 1000 }}
@@ -66,7 +69,6 @@ data:
       csvReporter: {enabled: true, interval: 180000, fileName: /tmp/gremlin-server-metrics.csv},
       jmxReporter: {enabled: true},
       slf4jReporter: {enabled: true, interval: 180000},
-      gangliaReporter: {enabled: false, interval: 180000, addressingMode: MULTICAST},
       graphiteReporter: {enabled: false, interval: 180000}}
     maxInitialLineLength: 4096
     maxHeaderSize: 8192
@@ -76,15 +78,21 @@ data:
     resultIterationBatchSize: 64
     writeBufferLowWaterMark: 32768
     writeBufferHighWaterMark: 65536
-
+    threadPoolWorker: 1
+    gremlinPool: 8
 
   log4j-server.properties: |+
-
+    log4j.rootLogger={{ default "DEBUG" .Values.debugLevel }}, console
     log4j.appender.console=org.apache.log4j.ConsoleAppender
     log4j.appender.console.Threshold={{ default "INFO" .Values.debugLevel }}
     log4j.appender.console.layout=org.apache.log4j.PatternLayout
     log4j.appender.console.layout.ConversionPattern=%-4r [%t] %-5p %c %x - %m%n
 
-    log4j.rootLogger={{ default "INFO" .Values.debugLevel }}, console
     
+  remote.yaml: |+
+    hosts: [localhost]
+    port: 8182
+    serializer: { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV3d0, config: { ioRegistries: [org.janusgraph.graphdb.tinkerpop.JanusGraphIoRegistry] }}
     {{- end -}}
+
+

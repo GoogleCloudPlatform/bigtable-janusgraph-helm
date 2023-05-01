@@ -14,7 +14,7 @@
 #  limitations under the License.
 #
 apiVersion: v2
-appVersion: 0.5.3
+appVersion: 0.6.3
 deprecated: false
 description: Janusgraph - Open source, scalable graph database, backed by Cloud Bigtable and Elasticsearch.
 home: http://janusgraph.org
@@ -24,7 +24,7 @@ sources:
   - https://github.com/JanusGraph/janusgraph
 dependencies:
   - name: elasticsearch
-    version: 7.6.2
+    version: 7.17.3
     repository: https://helm.elastic.co
     condition: elasticsearch.deploy
-version: 0.5.3-1
+version: 0.6.3

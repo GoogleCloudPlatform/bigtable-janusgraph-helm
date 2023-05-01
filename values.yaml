@@ -19,18 +19,23 @@
 
 image:
   repository: docker.io/janusgraph/janusgraph
-  tag: 0.5.2
+  tag: 0.6.3
   pullPolicy: IfNotPresent
 
 ## The default configuration provided here uses attached storage for db and indexing
 ## For a distributed deployment, increase the number of replicas and choose
 ## a distributed backend for storage and indexing below (i.e. hbase and elasticsearch)
-replicaCount: 1
+replicaCount: 3
 
-## set any pod specific resource requests here
+## Set any pod specific resource requests here
 resources: {}
 
-extraEnvs: {}
+## Set any pod specific env variables here
+extraEnvs:
+  - name: "HADOOP_HOME"
+    value: "/tmp"
+  - name: "GREMLIN_LOG_LEVEL"
+    value: "WARN"
 
 service:
   type: ClusterIP  # Change to LoadBalancer if you plan to access JanusGraph outside k8s cluster
@@ -42,46 +47,10 @@ service:
 ## This chart can deploy the Elasticsearch as a dependency.
 ## Use this section to provide elasticsearch chart specific values
 elasticsearch:
-  deploy: false  # change to true if you want to deploy Elasticsearch as a requirement along with this chart
+  deploy: true
+  clusterName: janusgraph-bigtable-elastic-elasticsearch
   rbac:
     create: true  # required for kubernetes >1.7
-
-
-properties:
-  ## use this section to add or adjust JanusGraph properties as needed
-  ## all uncommented values in this section will be placed in the janusgraph.properties file
-
-  ## see http://docs.janusgraph.org/0.2.0/storage-backends.html, choose the desired storage backend
-  ## (i.e. berkeleyje, cassandra, cassandrathrift, cql, embeddedcassandra, hbase, inmemory )
-  ## for Cloud Bigtable choose hbase
-  storage.backend: berkeleyje
-  storage.directory: /db/berkeley
-
-  ## Google Cloud Bigtable specific configuration
-  ## To use Cloud Bigtable, uncomment the following three lines and replace values
-  # storage.hbase.ext.google.bigtable.instance.id: <your-cbt-instance> # replace with your Cloud Bigtable Instance ID
-  # storage.hbase.ext.google.bigtable.project.id: <your-cbt-project> # replace with your Cloud Bigtable Project ID
-  # storage.hbase.ext.hbase.client.connection.impl: com.google.cloud.bigtable.hbase2_x.BigtableConnection # required for using Cloud Bigtable
-
-
-  ## Indexing/Search backend configuration (see http://docs.janusgraph.org/latest/index-backends.html)
-  index.search.backend: lucene
-  index.search.directory: /db/searchindex
-  ## choose the index backend you want to use: elasticsearch, es, solr or lucene (default "lucene")
-  ## if you plan to use elasticsearch, change to "index.search.backend=elasticsearch"
-
-  ## Elasticsearch configuration (see http://docs.janusgraph.org/latest/elasticsearch.html)
-  ## This property is only relevant if you are using Elasticsearch as your index backend.
-  # index.search.hostname: <your-es-hostname>
-  ## Only set this if you plan to use an elasticsearch deployment created outside of this chart,
-  ## If you plan to deploy Elasticsearch as a requirement with this helm chart,
-  ## then leave this commented out or empty, it will be filled in automatically
-
-  ## other common properties
-  # cache.db-cache: true
-  # cache.db-cache-clean-wait: 20
-  # cache.db-cache-time: 180000
-  # cache.db-cache-size: 0.5
 
 ## when using local storage and indexing, choose whether to persist day
 persistence:
@@ -95,7 +64,33 @@ persistence:
 ## custom ConfigMap in your k8s cluster (using the helm created ConfigMap as a base).
 configMapOverrideName: ""
 
-# nodeSelector:
-#   beta.kubernetes.io/os: linux
-#   beta.kubernetes.io/arch: amd64
+properties:
+  ## use this section to add or adjust JanusGraph properties as needed
+  ## all uncommented values in this section will be placed in the janusgraph.properties file
+
+  ## see http://docs.janusgraph.org/0.2.0/storage-backends.html, choose the desired storage backend
+  ## (i.e. berkeleyje, cassandra, cassandrathrift, cql, embeddedcassandra, hbase, inmemory )
+  ## for Cloud Bigtable choose hbase
+  storage.backend: hbase
+
+  ## Indexing/Search backend configuration (see http://docs.janusgraph.org/latest/index-backends.html)
+  ## choose the index backend you want to use: elasticsearch, es, solr or lucene (default "lucene")
+  ## if you plan to use elasticsearch, change to "index.search.backend=elasticsearch"
+  index.search.backend: elasticsearch
+  # index.search.hostname: # this property will be filled at the bottom
+  index.search.elasticsearch.health-request-timeout: 90s
+
+  ## other common properties
+  cache.db-cache: true
+  cache.db-cache-clean-wait: 20
+  cache.db-cache-time: 180000
+  cache.db-cache-size: 0.5
+
+  ## Google Cloud Bigtable specific configuration
+  ## To use Cloud Bigtable, uncomment the following three lines and replace values
+  # storage.hbase.ext.google.bigtable.instance.id: <your-cbt-instance> # replace with your Cloud Bigtable Instance ID
+  # storage.hbase.ext.google.bigtable.project.id: <your-cbt-project> # replace with your Cloud Bigtable Project ID
+  # storage.hbase.ext.hbase.client.connection.impl: com.google.cloud.bigtable.hbase2_x.BigtableConnection # required for using Cloud Bigtable
+  storage.hbase.ext.hbase.client.connection.impl: com.google.cloud.bigtable.hbase2_x.BigtableConnection
+  storage.hbase.short-cf-names: true
 
